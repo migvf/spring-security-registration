@@ -1,5 +1,6 @@
 package com.baeldung.security;
 
+import com.baeldung.naming.PrivilegeNaming;
 import com.baeldung.persistence.model.User;
 import com.baeldung.service.DeviceService;
 import org.slf4j.Logger;
@@ -38,13 +39,7 @@ public class MySimpleUrlAuthenticationSuccessHandler implements AuthenticationSu
         if (session != null) {
             session.setMaxInactiveInterval(30 * 60);
 
-            String username;
-            if (authentication.getPrincipal() instanceof User) {
-            	username = ((User)authentication.getPrincipal()).getEmail();
-            }
-            else {
-            	username = authentication.getName();
-            }
+            String username = this.setUserNameBasedInAuthenticationInfo(authentication);
             LoggedUser user = new LoggedUser(username, activeUserStore);
             session.setAttribute("user", user);
         }
@@ -65,6 +60,11 @@ public class MySimpleUrlAuthenticationSuccessHandler implements AuthenticationSu
 
     }
 
+    private String setUserNameBasedInAuthenticationInfo(Authentication authentication){
+        return authentication.getPrincipal() instanceof User ? ((User)authentication.getPrincipal()).getEmail() :
+                authentication.getName();
+    }
+
     protected void handle(final HttpServletRequest request, final HttpServletResponse response, final Authentication authentication) throws IOException {
         final String targetUrl = determineTargetUrl(authentication);
 
@@ -76,31 +76,24 @@ public class MySimpleUrlAuthenticationSuccessHandler implements AuthenticationSu
     }
 
     protected String determineTargetUrl(final Authentication authentication) {
-        boolean isUser = false;
-        boolean isAdmin = false;
         final Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        for (final GrantedAuthority grantedAuthority : authorities) {
-            if (grantedAuthority.getAuthority().equals("READ_PRIVILEGE")) {
-                isUser = true;
-            } else if (grantedAuthority.getAuthority().equals("WRITE_PRIVILEGE")) {
-                isAdmin = true;
-                isUser = false;
-                break;
-            }
-        }
-        if (isUser) {
-        	 String username;
-             if (authentication.getPrincipal() instanceof User) {
-             	username = ((User)authentication.getPrincipal()).getEmail();
-             }
-             else {
-             	username = authentication.getName();
-             }
 
-            return "/homepage.html?user="+username;
+        boolean isUser = authorities.stream().anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(PrivilegeNaming.READ_PRIVILEGE))
+                &&  authorities.stream().noneMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(PrivilegeNaming.MANAGER_PRIVILEGE));
+        boolean isAdmin = authorities.stream().anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(PrivilegeNaming.WRITE_PRIVILEGE));
+        boolean isManager = authorities.stream().anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(PrivilegeNaming.READ_PRIVILEGE))
+                &&  authorities.stream().anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(PrivilegeNaming.MANAGER_PRIVILEGE));
+
+        if (isUser) {
+        	 String username = this.setUserNameBasedInAuthenticationInfo(authentication);
+
+            return "/homepage.html?user=".concat(username);
         } else if (isAdmin) {
             return "/console.html";
-        } else {
+        }else if(isManager){
+            return "/management.html";
+        }
+        else {
             throw new IllegalStateException();
         }
     }

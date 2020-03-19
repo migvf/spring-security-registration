@@ -1,10 +1,8 @@
 package com.baeldung.spring;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
+import com.baeldung.naming.PrivilegeNaming;
 import com.baeldung.persistence.dao.PrivilegeRepository;
 import com.baeldung.persistence.dao.RoleRepository;
 import com.baeldung.persistence.dao.UserRepository;
@@ -45,18 +43,23 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
         }
 
         // == create initial privileges
-        final Privilege readPrivilege = createPrivilegeIfNotFound("READ_PRIVILEGE");
-        final Privilege writePrivilege = createPrivilegeIfNotFound("WRITE_PRIVILEGE");
-        final Privilege passwordPrivilege = createPrivilegeIfNotFound("CHANGE_PASSWORD_PRIVILEGE");
+        final Privilege readPrivilege = createPrivilegeIfNotFound(PrivilegeNaming.READ_PRIVILEGE);
+        final Privilege writePrivilege = createPrivilegeIfNotFound(PrivilegeNaming.WRITE_PRIVILEGE);
+        final Privilege passwordPrivilege = createPrivilegeIfNotFound(PrivilegeNaming.CHANGE_PASSWORD_PRIVILEGE);
+        final Privilege managerPrivilege = createPrivilegeIfNotFound(PrivilegeNaming.MANAGER_PRIVILEGE);
 
         // == create initial roles
-        final List<Privilege> adminPrivileges = new ArrayList<Privilege>(Arrays.asList(readPrivilege, writePrivilege, passwordPrivilege));
-        final List<Privilege> userPrivileges = new ArrayList<Privilege>(Arrays.asList(readPrivilege, passwordPrivilege));
+        final List<Privilege> adminPrivileges = new ArrayList<>(Arrays.asList(readPrivilege, writePrivilege, passwordPrivilege));
+        final List<Privilege> userPrivileges = new ArrayList<>(Arrays.asList(readPrivilege, passwordPrivilege));
+        final List<Privilege> managerPriviliges = new ArrayList<>(Arrays.asList(readPrivilege, managerPrivilege, passwordPrivilege));
         final Role adminRole = createRoleIfNotFound("ROLE_ADMIN", adminPrivileges);
+        final Role managerRole = createRoleIfNotFound("ROLE_MANAGER", managerPriviliges);
         createRoleIfNotFound("ROLE_USER", userPrivileges);
 
         // == create initial user
-        createUserIfNotFound("test@test.com", "Test", "Test", "test", new ArrayList<Role>(Arrays.asList(adminRole)));
+        createUserIfNotFound("test@test.com", "Test", "Test", "test", new ArrayList<>(Collections.singletonList(adminRole)));
+        // == create initial manager user
+        createUserIfNotFound("manager@manager.com", "Manager", "Manager", "manager", new ArrayList<>(Collections.singletonList(managerRole)));
 
         alreadySetup = true;
     }

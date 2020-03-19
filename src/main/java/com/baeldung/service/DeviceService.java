@@ -109,15 +109,18 @@ public class DeviceService {
 
         String location = UNKNOWN;
 
-        InetAddress ipAddress = InetAddress.getByName(ip);
+        // Fix to avoid AddressNotFoundException
+        if(!ip.equals("127.0.0.1") && !ip.equals("0:0:0:0:0:0:0:1")){
+            InetAddress ipAddress = InetAddress.getByName(ip);
 
-        CityResponse cityResponse = databaseReader.city(ipAddress);
-        if (Objects.nonNull(cityResponse) &&
-                Objects.nonNull(cityResponse.getCity()) &&
-                !Strings.isNullOrEmpty(cityResponse.getCity().getName())) {
+            CityResponse cityResponse = databaseReader.city(ipAddress);
+            if (Objects.nonNull(cityResponse) &&
+                    Objects.nonNull(cityResponse.getCity()) &&
+                    !Strings.isNullOrEmpty(cityResponse.getCity().getName())) {
 
-            location = cityResponse.getCity().getName();
-        }
+                location = cityResponse.getCity().getName();
+            }
+         }
 
         return location;
     }
